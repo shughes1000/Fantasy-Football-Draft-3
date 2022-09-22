@@ -1,0 +1,185 @@
+---
+title: "Model 2"
+author: "Sam Hughes"
+date: "9/13/2022"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+
+df = read_csv('../resources/data/fantasypros_2012_to_2021.csv')
+
+head(df)
+```
+
+
+```{r}
+df$pos = factor(df$pos, levels=c("QB", "RB", "WR", "TE", "DST", "K"))
+
+str(df)
+```
+
+Out of Sample Performance
+```{r}
+library(mgcv)
+
+df_mod = df[ , c('avg_scoring', 'rank_adp', 'pos', 'year')]
+
+df_mod$oos_prediction = 0
+best_sp_list = c()
+
+for (oos_y in unique(df_mod$year)) {
+  
+  df_train = df_mod[df$year != oos_y, ]
+  df_test = df_mod[df$year == oos_y, ]
+  
+  sp_seq = seq(0, 1, 0.05)
+  mae_list = c()
+  
+  for (sp_val in sp_seq) {
+    mae_across_years = c()
+    for (y in unique(df_train$year)) {
+      cv_train = df_train[df_train$year != y, ]
+      cv_eval = df_train[df_train$year == y, ]
+      
+      cv_mod = gam(avg_scoring ~ s(rank_adp, by=pos, sp=sp_val) + pos, data=cv_train)
+      eval_predictions = predict(cv_mod, newdata=cv_eval)
+      eval_errors = cv_eval$avg_scoring - eval_predictions
+      mae = mean(abs(eval_errors))
+      mae_across_years = c(mae_across_years, mae)
+    }
+    
+    mae_list = c(mae_list, mean(mae_across_years))
+    
+  }
+  
+  # mae_list
+  
+  best_sp = sp_seq[which.min(mae_list)]
+  best_sp_list = c(best_sp_list, best_sp)
+  
+  
+  oos_mod = gam(avg_scoring ~ s(rank_adp, by=pos, sp=best_sp) + pos, data=df_train)
+  
+  df_mod[df_mod$year == oos_y, 'oos_prediction'] = predict(oos_mod, newdata=df_mod[df_mod$year == oos_y, ])
+  
+}
+
+best_sp_list
+```
+
+```{r}
+df_mod$error = df_mod$avg_scoring - df_mod$oos_prediction
+
+mean(abs(df_mod$error))
+```
+
+Residual Plots
+```{r}
+ggplot(df_mod, aes(rank_adp, error))+ 
+  geom_point(aes(color=pos), alpha=0.25)+
+  geom_smooth(alpha=0.75, size=1, se=FALSE)+
+  labs(title="Residual Plot", subtitle="Out-Of-Sample Data (2012-2021)", 
+       x="Average Draft Position", y="Error", color="Position")+
+  theme_minimal()
+```
+
+```{r}
+ggplot(df_mod, aes(pos, error))+ 
+  geom_boxplot(aes(fill=pos), show.legend = FALSE)+
+  labs(title="Distribution of Error by Position", subtitle="Out-Of-Sample Data (2012-2021)", 
+       x="Position", y="Error")+
+  theme_minimal()
+```
+
+Build Final Model
+```{r}
+best_sp = mean(best_sp_list)
+mod = gam(avg_scoring ~ s(rank_adp, by=pos, sp=best_sp) + pos, data=df_mod)
+
+summary(mod)
+```
+
+```{r}
+saveRDS(mod, "../resources/models/model2.rds")
+
+"saved"
+```
+
+
+Create Values with Monotonic Constraint
+```{r}
+df_value = NULL
+
+for (p in unique(df_mod$pos)) {
+  pos_range = seq(min(df_mod[df_mod$pos == p, "rank_adp"]), 
+                  250, 
+                  1)
+
+  pos_rep = rep(p, length(pos_range))
+  
+  if (typeof(df_value) == "NULL") {
+    df_value = tibble(pos_range, pos_rep)
+    colnames(df_value) = c("rank_adp", "pos")
+    df_value$prediction = predict(mod, newdata=df_value)
+    
+    for (i in seq_along(df_value$prediction)) {
+      if (i != 1) {
+        if (df_value[i, "prediction"] > df_value[i - 1, "prediction"]) {
+          df_value[i, "prediction"] = df_value[i - 1, "prediction"]
+        }
+      }
+    }
+    
+    df_value = df_value %>% mutate(value = prediction - lead(prediction))
+    
+  } else {
+    temp = tibble(pos_range, pos_rep)
+    colnames(temp) = c("rank_adp", "pos")
+    temp$prediction = predict(mod, newdata=temp)
+    temp$prediction = if_else(temp$prediction > lag(temp$prediction, default=first(temp$prediction)), 
+                              lag(temp$prediction), temp$prediction)
+    
+    for (i in seq_along(temp$prediction)) {
+      if (i != 1) {
+        if (temp[i, "prediction"] > temp[i - 1, "prediction"]) {
+          temp[i, "prediction"] = temp[i - 1, "prediction"]
+        }
+      }
+    }
+    
+    temp = temp %>% mutate(value = prediction - lead(prediction))
+    
+    df_value = bind_rows(df_value, temp)
+  }
+}
+
+df_value$pos = factor(df_value$pos, levels=c("QB", "RB", "WR", "TE", "DST", "K"))
+
+head(df_value)
+```
+
+```{r}
+ggplot(df_value, aes(rank_adp, value, col=pos))+ 
+  geom_line(size=2, alpha = 0.75)+
+  labs(title="Positional Value by ADP", 
+       x="Average Draft Position", y="Value Versus Subsequent Pick")+
+  theme_minimal()
+```
+
+Fantasy Points with Monotonic Constraint
+```{r}
+ggplot(df_value, aes(rank_adp, avg_scoring, col=pos))+ 
+  geom_point(data=df_mod, alpha=0.15)+
+  geom_line(aes(y=prediction), alpha=0.75, size=2)+
+  labs(title="Fantasy Points by ADP and Position", subtitle="Data From 2012-2021", 
+       x="Average Draft Position", y="Fantasy Points", color="Position")+
+  theme_minimal()
+```
+
+```{r}
+write.csv(df_value, "../resources/data/df_value.csv", row.names=FALSE)
+
+"saved"
+```
