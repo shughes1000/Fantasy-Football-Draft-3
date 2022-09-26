@@ -82,7 +82,8 @@ ggplot(df_mod, aes(rank_adp, error))+
   geom_smooth(alpha=0.75, size=1, se=FALSE)+
   labs(title="Residual Plot", subtitle="Out-Of-Sample Data (2012-2021)", 
        x="Average Draft Position", y="Error", color="Position")+
-  theme_minimal()
+  theme_minimal()+
+  theme(text = element_text(size = 14))
 ```
 
 ```{r}
@@ -90,7 +91,8 @@ ggplot(df_mod, aes(pos, error))+
   geom_boxplot(aes(fill=pos), show.legend = FALSE)+
   labs(title="Distribution of Error by Position", subtitle="Out-Of-Sample Data (2012-2021)", 
        x="Position", y="Error")+
-  theme_minimal()
+  theme_minimal()+
+  theme(text = element_text(size = 14))
 ```
 
 Build Final Model
@@ -106,7 +108,6 @@ saveRDS(mod, "../resources/models/model2.rds")
 
 "saved"
 ```
-
 
 Create Values with Monotonic Constraint
 ```{r}
@@ -160,23 +161,30 @@ df_value$pos = factor(df_value$pos, levels=c("QB", "RB", "WR", "TE", "DST", "K")
 head(df_value)
 ```
 
-```{r}
-ggplot(df_value, aes(rank_adp, value, col=pos))+ 
-  geom_line(size=2, alpha = 0.75)+
-  labs(title="Positional Value by ADP", 
-       x="Average Draft Position", y="Value Versus Subsequent Pick")+
-  theme_minimal()
-```
-
 Fantasy Points with Monotonic Constraint
 ```{r}
 ggplot(df_value, aes(rank_adp, avg_scoring, col=pos))+ 
   geom_point(data=df_mod, alpha=0.15)+
   geom_line(aes(y=prediction), alpha=0.75, size=2)+
-  labs(title="Fantasy Points by ADP and Position", subtitle="Data From 2012-2021", 
+  labs(title="Fantasy Points by ADP and Position", 
+       subtitle="Data From FantasyPros 2012-2021 (PPR)", 
        x="Average Draft Position", y="Fantasy Points", color="Position")+
-  theme_minimal()
+  theme_minimal()+
+  theme(text = element_text(size = 14))
 ```
+
+
+Value Plot
+```{r}
+ggplot(df_value, aes(rank_adp, value, col=pos))+ 
+  geom_line(size=2, alpha = 0.75)+
+  labs(title="Positional Value by ADP", 
+       x="Average Draft Position", y="Value Versus Subsequent Pick", 
+       color = "Postion")+
+  theme_minimal()+
+  theme(text = element_text(size = 14))
+```
+
 
 ```{r}
 write.csv(df_value, "../resources/data/df_value.csv", row.names=FALSE)

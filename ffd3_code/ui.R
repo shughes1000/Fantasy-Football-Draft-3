@@ -71,7 +71,7 @@ fluidPage(
     textOutput('text'),
     tags$head(tags$style("#text{font-size: 30px;
                                 text-align: center;
-                                padding: 1vh}")),
+                                padding: 0vh}")),
     tableOutput('table'),
     fluidRow(
       splitLayout(cellWidths=c("49%", "2%", "49%"), plotOutput('plot1'), NULL, plotOutput('plot2'))

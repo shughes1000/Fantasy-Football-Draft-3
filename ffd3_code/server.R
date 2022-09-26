@@ -230,7 +230,8 @@ function(input, output) {
     ggplot(df_plot, aes(rank_adp, prediction, col=pos))+
       geom_point(data=df_real, mapping=aes(y=avg_scoring), alpha=0.15)+
       geom_line(alpha=0.75, size=2)+
-      labs(title="Expected Fantasy Points by ADP and Position",  
+      labs(title="Expected Fantasy Points by ADP and Position", 
+           subtitle="Data From FantasyPros 2012-2021 (PPR)",
            x="Average Draft Position", y="Expected Fantasy Points", color="Position")+
       scale_color_manual(values = c("#f8766d", "#b79f00", "#00ba38", "#00bfc4", "#619cff", "#f564e3"),
                          drop = FALSE)+
@@ -238,9 +239,9 @@ function(input, output) {
       theme(plot.background = element_rect(fill = "#2b3e50", color = "#2b3e50"),
             panel.background = element_rect(fill = "#FFFFFF", color = "#FFFFFF"),
             title = element_text(color = "#FFFFFF"),
-            text = element_text(color = "#FFFFFF"),
+            text = element_text(color = "#FFFFFF", size = 12),
             axis.text = element_text(color = "#FFFFFF"))
-  })
+  }, height = 385)
   
   output$plot2 = renderPlot({
     
@@ -286,7 +287,7 @@ function(input, output) {
     
     ggplot(df_plot, aes(rank_adp, value, col=pos))+ 
       geom_line(alpha=0.75, size=2)+
-      labs(title="Position Value by ADP",  
+      labs(title="Position Value by ADP", 
            x="Average Draft Position", y="Value Versus Subsequent Pick", color="Position")+
       scale_color_manual(values = c("#f8766d", "#b79f00", "#00ba38", "#00bfc4", "#619cff", "#f564e3"), 
                          drop = FALSE)+
@@ -294,8 +295,8 @@ function(input, output) {
       theme(plot.background = element_rect(fill = "#2b3e50", color = "#2b3e50"),
             panel.background = element_rect(fill = "#FFFFFF", color = "#FFFFFF"),
             title = element_text(color = "#FFFFFF"),
-            text = element_text(color = "#FFFFFF"),
+            text = element_text(color = "#FFFFFF", size = 12),
             axis.text = element_text(color = "#FFFFFF"))
-  })
+  }, height = 385)
   
 }
