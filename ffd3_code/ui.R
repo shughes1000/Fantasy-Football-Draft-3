@@ -4,6 +4,15 @@ library(shinythemes)
 df = read.csv("./shiny_data/df_value.csv")
 
 fluidPage(
+  tags$head(
+    tags$style(
+      HTML("
+        body {
+          overflow: hidden;
+        }
+      ")
+    )
+  ),
   
   title = "Fantasy Football Draft Calculator",
   
@@ -68,13 +77,16 @@ fluidPage(
   , style="height: 85vh; overflow-y: auto;"),
   
   mainPanel(
-    textOutput('text'),
-    tags$head(tags$style("#text{font-size: 30px;
+    # textOutput('text'),
+    tags$head(tags$style("#text{font-size: 3vh;
                                 text-align: center;
                                 padding: 0vh}")),
     tableOutput('table'),
-    fluidRow(
-      splitLayout(cellWidths=c("49%", "2%", "49%"), plotOutput('plot1'), NULL, plotOutput('plot2'))
-    )
-  )
+    # fluidRow(
+    #   # splitLayout(cellWidths=c("49%", "2%", "49%"), plotOutput('plot1'), NULL, plotOutput('plot2'))
+    #   plotOutput('plot1')
+    # ), 
+    div(plotOutput('plot1')), 
+    style="height: 85vh; overflow-y: auto; overflow-x: hidden;"
+  ), 
 )
